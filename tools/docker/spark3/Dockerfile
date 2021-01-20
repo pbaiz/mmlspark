@@ -1,11 +1,13 @@
 FROM ubuntu:16.04
+# FROM ubuntu:20.04
+# FROM ubuntu:16.04
 
-ENV SPARK_VERSION=3.0.1
+ENV SPARK_VERSION 3.0.1
 # ARG SPARK_VERSION=2.4.3  # Decided to change from ARG to ENV - this fixes the var after building
 ENV HADOOP_VERSION 3.2.1
 
 ##################################
-# Should we add Spark Scala??? SPARK_HOME
+# Should we add Spark Scala??? SPARK_HOME??? Here we are doing that! We may remove this later?
 RUN echo "$LOG_TAG Getting SPARK_HOME" && \
     apt-get update && \
     # build deps and deps for c bindings for cntk
@@ -16,8 +18,10 @@ RUN echo "$LOG_TAG Getting SPARK_HOME" && \
     curl http://apache.claz.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-without-hadoop.tgz  | \
         tar -xz && \
     ln -s spark-${SPARK_VERSION}-bin-without-hadoop spark && \
-    echo Spark ${SPARK_VERSION} installed in /opt/spark && \
-    export SPARK_HOME=/opt/spark
+    echo Spark ${SPARK_VERSION} installed in /opt/spark
+
+ENV SPARK_HOME /opt/spark
+ENV PATH $SPARK_HOME/bin:$SPARK_HOME/sbin:$PATH
 
 ##################################
 # Config for Python and PySpark
@@ -52,8 +56,8 @@ RUN echo "Downloading hadoop" && \
     rm -rf /opt/hadoop/share/doc
 
 RUN echo "\nSPARK_DIST_CLASSPATH=/jars:/jars/*:$(/opt/hadoop/bin/hadoop classpath)" >> /opt/spark/conf/spark-env.sh
-ENV HADOOP_HOME=/opt/hadoop
-ADD jars /jars
+ENV HADOOP_HOME /opt/hadoop
+#ADD /tools/docker/spark3/jars /opt/hadoop/jars
 
 ##################################
 # Config for Jupyter Easy Start
@@ -71,6 +75,14 @@ RUN conda install jupyter \
 COPY tools/docker/demo/init_notebook.py /root/.ipython/profile_default/startup
 COPY notebooks/samples notebooks
 WORKDIR notebooks
+
+##################################
+# Other Env Variables
+ENV HADOOP_OPTIONAL_TOOLS hadoop-azure
+ENV PYSPARK_DRIVER_PYTHON jupyter
+ENV PYSPARK_DRIVER_PYTHON_OPTS 'notebook'
+ENV PYSPARK_PYTHON python
+ENV PDSH_RCMD_TYPE ssh
 
 ##################################
 # Flexibility to set the MMLSPARK_VERSION version, during build and remains after as ENV
